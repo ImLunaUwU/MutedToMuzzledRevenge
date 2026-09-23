@@ -1,0 +1,15 @@
+{
+  "name": "MutedToMuzzled",
+  "description": "Replaces the muted microphone icon with a dog muzzle. Port of the Vencord/BetterDiscord snippet.",
+  "authors": [
+    {
+      "name": "Luna",
+      "id": "0"
+    }
+  ],
+  "main": "index.js",
+  "hash": "muzzled-overlay-1",
+  "vendetta": {
+    "icon": "MicOffIcon"
+  }
+}
