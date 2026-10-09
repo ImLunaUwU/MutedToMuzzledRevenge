@@ -1,6 +1,6 @@
 {
   "name": "MutedToMuzzled Test",
-  "description": "10 Debug plugin for the Discord Android mic/mute/deafen asset and component data collection.",
+  "description": "11 Debug plugin for the Discord Android mic/mute/deafen asset and component data collection.",
   "authors": [
     {
       "name": "Luna",
@@ -8,7 +8,7 @@
     }
   ],
   "main": "index.js",
-  "hash": "muted-to-muzzled-testing-v10",
+  "hash": "muted-to-muzzled-testing-v11",
   "vendetta": {
     "icon": "MicOffIcon"
   }
