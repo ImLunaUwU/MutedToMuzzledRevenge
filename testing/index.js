@@ -1,42 +1,55 @@
 (() => {
-  function boot() {
-    const g = globalThis;
-    const keys = Object.getOwnPropertyNames(g).filter((k) =>
-      /revenge|vendetta|bunny|metro|asset|discord|__r|modules/i.test(k)
-    );
-    const out = {
-      keys,
-      hasR: typeof g.__r,
-      hasVendetta: typeof g.vendetta,
-      hasRevenge: typeof g.revenge,
-      assets: [],
-    };
+  const MUZZLE = {
+    uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/dog.png",
+    width: 24,
+    height: 24,
+  };
+  const unpatches = [];
 
-    let registry;
-    const require = g.__r;
-    if (typeof require === "function" && require.m) {
-      for (const id of Object.keys(require.m)) {
-        let mod;
-        try { mod = require(id); } catch (e) { continue; }
-        const x = mod && (mod.default || mod);
-        if (x && x.getAssetByID && x.registerAsset) {
-          registry = x;
-          break;
-        }
+  function boot() {
+    const v = globalThis.vendetta;
+    const registry = v.metro.findByProps("registerAsset", "getAssetByID");
+    const uiAssets = v.ui && v.ui.assets;
+    const rows = [];
+
+    if (uiAssets) {
+      for (const name of Object.keys(uiAssets)) {
+        if (/mic|mute|headset|voice/i.test(name)) rows.push("ui " + name + " #" + uiAssets[name]);
       }
     }
 
+    const hits = [];
     if (registry) {
-      for (let id = 1; id <= 20000; id++) {
+      for (let id = 1; id <= 30000; id++) {
         let a;
         try { a = registry.getAssetByID(id); } catch (e) { continue; }
-        if (!a || !a.name) continue;
-        if (/mic|mute|headset|voice/i.test(a.name)) out.assets.push(a.name + " #" + id);
+        if (!a || !a.name || !/mic|mute|headset|voice/i.test(a.name)) continue;
+        rows.push(a.name + " #" + id);
+        if (/MicrophoneSlash|ic_mic_muted/i.test(a.name)) hits.push(id);
       }
     }
 
-    g.__muzzle = out;
+    globalThis.__muzzle = {
+      vendettaKeys: Object.keys(v),
+      ui: v.ui ? Object.keys(v.ui) : [],
+      registry: !!registry,
+      rows,
+    };
+
+    if (!hits.length) return;
+    const RN = v.metro.common.ReactNative;
+    unpatches.push(v.patcher.before("render", RN.Image, (args) => {
+      const props = args[0];
+      const src = props && props.source;
+      const id = typeof src === "number" ? src : src && src.uri && null;
+      if (hits.indexOf(src) !== -1 || hits.indexOf(id) !== -1) props.source = MUZZLE;
+    }));
   }
 
-  return { start: boot, onLoad: boot, stop() {}, onUnload() {} };
+  return {
+    start: boot,
+    onLoad: boot,
+    stop() { for (const u of unpatches) u(); unpatches.length = 0; },
+    onUnload() { for (const u of unpatches) u(); unpatches.length = 0; },
+  };
 })();
