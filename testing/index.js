@@ -5,7 +5,7 @@
     addAssetOverride,
     removeAssetOverride,
     onAssetRegistered,
-  } = revenge.assets;
+  } = assets;
 
   const MUZZLE = {
     uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/dog.png",
