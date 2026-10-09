@@ -1,36 +1,40 @@
 (() => {
-  function boot() {
-    const out = { step: "boot" };
-    try {
-      const v = globalThis.vendetta;
-      const assets = v.ui.assets;
-      const keys = Object.keys(assets);
-      out.assetKeyCount = keys.length;
-      out.assetKeySample = keys.slice(0, 40);
-      out.registry = false;
-      out.seen = 0;
-      out.rows = [];
+  const MUZZLE = {
+    uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/dog.png",
+    width: 24,
+    height: 24,
+  };
+  const NAMES = [
+    "voice_bar_mute_on",
+    "MicrophoneSlashIcon",
+    "ic_mic_muted_24px",
+    "ic_mic_muted_dark_24px",
+    "ic_mic_muted_light_24px",
+  ];
+  const unpatches = [];
 
-      const registry = v.metro.findByProps("registerAsset", "getAssetByID");
-      out.registry = !!registry;
-      if (registry) {
-        for (let id = 1; id <= 8000; id++) {
-          let a;
-          try { a = registry.getAssetByID(id); } catch (e) { continue; }
-          if (!a || !a.name) continue;
-          out.seen++;
-          if (/mic|mute|headset|voice|microphone/i.test(a.name)) {
-            out.rows.push(a.name + " #" + id);
-          }
-        }
-      }
-      out.step = "done";
-    } catch (e) {
-      out.step = "threw";
-      out.error = String((e && e.stack) || e);
+  function boot() {
+    const v = globalThis.vendetta;
+    const ids = [];
+    for (const name of NAMES) {
+      const id = v.ui.assets.getAssetIDByName(name);
+      if (typeof id === "number") ids.push(id);
     }
-    globalThis.__muzzle = out;
+    const RN = v.metro.common.ReactNative;
+    unpatches.push(v.patcher.before("render", RN.Image, (args) => {
+      const props = args[0];
+      if (!props) return;
+      const src = props.source;
+      const id = typeof src === "number" ? src : src && src.__packager_asset;
+      if (ids.indexOf(id) !== -1 || ids.indexOf(src) !== -1) props.source = MUZZLE;
+    }));
+    v.logger.log("[muzzle] swapped " + ids.join(","));
   }
 
-  return { start: boot, onLoad: boot, stop() {}, onUnload() {} };
+  return {
+    start: boot,
+    onLoad: boot,
+    stop() { for (const u of unpatches) u(); unpatches.length = 0; },
+    onUnload() { for (const u of unpatches) u(); unpatches.length = 0; },
+  };
 })();
