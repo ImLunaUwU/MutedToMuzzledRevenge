@@ -16,31 +16,29 @@
       width: 24,
       height: 24,
     },
+    deafened: {
+      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/caged.png",
+      width: 24,
+      height: 24,
+    },
+    undeafened: {
+      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/open_cage.png",
+      width: 24,
+      height: 24,
+    },
   };
 
-  const IDS = {
-    2101: ICON.muted,    // voice_bar_mute_on
-    2288: ICON.muted,    // voice_bar_mute_on
-    2222: ICON.muted,    // MicrophoneSlashIcon
-    2198: ICON.muted,    // ic_mic_muted_24px
-    2812: ICON.muted,    // ic_mic_muted_dark_24px
-    2813: ICON.muted,    // ic_mic_muted_light_24px
-    2221: ICON.muted,    // MicrophoneDenyIcon
-    2289: ICON.unmuted,  // voice_bar_mute_off
-    2287: ICON.unmuted,  // MicrophoneIcon
-    2105: ICON.unmuted,  // ic_mic_24px
-    2863: ICON.unmuted,  // mic
-  };
-
-  function sourceId(src) {
-    if (typeof src === "number") return src;
-    if (src && typeof src.__packager_asset === "number") return src.__packager_asset;
-    return null;
+  function labelOf(p) {
+    if (!p) return "";
+    return String(p.accessibilityLabel || p["aria-label"] || p.label || p.text || "").toLowerCase();
   }
 
-  function labelState(p) {
-    const t = String(p.accessibilityLabel || p["aria-label"] || p.label || "").toLowerCase();
-    if (!t || /channel|server|notif|bell|volume|output|deafen/.test(t)) return "";
+  function stateOf(p) {
+    const t = labelOf(p);
+    if (!t) return "";
+    if (/channel|server|notif|bell|volume|output|speaker/.test(t)) return "";
+    if (t.includes("undeafen")) return "deafened";
+    if (t.includes("deafen")) return "undeafened";
     if (t.includes("unmute")) return "muted";
     if (t.includes("mute")) return "unmuted";
     return "";
@@ -82,44 +80,43 @@
   }
 
   function hookArgs(args) {
-    const type = args[0];
     const props = args[1];
-    if (!type || !props || props.__muzzleOv) return;
-
-    const id = sourceId(props.source);
-    if (type === RN.Image && id !== null && IDS[id]) {
-      props.__muzzleOv = true;
-      props.source = IDS[id];
-      props.resizeMode = "contain";
-      log.log("[muzzle-ov] asset #" + id);
-      return;
-    }
-
-    const state = labelState(props);
+    if (!props || props.__muzzleOv) return;
+    const state = stateOf(props);
     if (!state) return;
     props.__muzzleOv = true;
     props.children = overlayWrap(props.children, props.style, ICON[state]);
-    log.log("[muzzle-ov] button " + state);
+    log.log("[muzzle-ov] wrapped " + state + " " + labelOf(props));
   }
 
   try {
     RN.Image.prefetch(ICON.muted.uri);
     RN.Image.prefetch(ICON.unmuted.uri);
+    RN.Image.prefetch(ICON.deafened.uri);
+    RN.Image.prefetch(ICON.undeafened.uri);
   } catch (_) {}
 
   return {
     onLoad() {
       safe(() => {
         const rt = findByProps("jsx", "jsxs");
-        if (!rt) return;
+        if (!rt) {
+          log.log("[muzzle-ov] no jsx");
+          return;
+        }
         const a = before("jsx", rt, hookArgs);
         const b = before("jsxs", rt, hookArgs);
-        return () => { a(); b(); };
+        return () => {
+          a();
+          b();
+        };
       });
       safe(() => before("createElement", React, hookArgs));
     },
     onUnload() {
-      unpatches.forEach((u) => { try { u(); } catch (_) {} });
+      unpatches.forEach((u) => {
+        try { u(); } catch (_) {}
+      });
     },
   };
 })();
