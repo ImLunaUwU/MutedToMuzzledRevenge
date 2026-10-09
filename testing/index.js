@@ -4,7 +4,6 @@
   const { before } = vendetta.patcher;
   const { findByProps } = vendetta.metro;
   const log = vendetta.logger;
-  const assets = vendetta.ui.assets;
 
   const ICON = {
     muted: {
@@ -17,34 +16,20 @@
       width: 24,
       height: 24,
     },
-    deafened: {
-      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/caged.png",
-      width: 24,
-      height: 24,
-    },
-    undeafened: {
-      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/open_cage.png",
-      width: 24,
-      height: 24,
-    },
   };
 
   const IDS = {
-    2101: ICON.muted,       // voice_bar_mute_on
-    2288: ICON.muted,       // voice_bar_mute_on
-    2222: ICON.muted,       // MicrophoneSlashIcon
-    2198: ICON.muted,       // ic_mic_muted_24px
-    2812: ICON.muted,       // ic_mic_muted_dark_24px
-    2813: ICON.muted,       // ic_mic_muted_light_24px
-    2221: ICON.muted,       // MicrophoneDenyIcon
-    2289: ICON.unmuted,     // voice_bar_mute_off
-    2287: ICON.unmuted,     // MicrophoneIcon
-    2105: ICON.unmuted,     // ic_mic_24px
-    2863: ICON.unmuted,     // mic
-    2293: ICON.deafened,    // voice_bar_deafen_on
-    2197: ICON.deafened,    // ic_headset_deafened_24px
-    2814: ICON.deafened,    // ic_headset_deafened_dark_24px
-    2294: ICON.undeafened,  // voice_bar_deafen_off
+    2101: ICON.muted,    // voice_bar_mute_on
+    2288: ICON.muted,    // voice_bar_mute_on
+    2222: ICON.muted,    // MicrophoneSlashIcon
+    2198: ICON.muted,    // ic_mic_muted_24px
+    2812: ICON.muted,    // ic_mic_muted_dark_24px
+    2813: ICON.muted,    // ic_mic_muted_light_24px
+    2221: ICON.muted,    // MicrophoneDenyIcon
+    2289: ICON.unmuted,  // voice_bar_mute_off
+    2287: ICON.unmuted,  // MicrophoneIcon
+    2105: ICON.unmuted,  // ic_mic_24px
+    2863: ICON.unmuted,  // mic
   };
 
   function sourceId(src) {
@@ -53,27 +38,9 @@
     return null;
   }
 
-  function note(line) {
-    const list = globalThis.__muzzle || (globalThis.__muzzle = []);
-    if (list.indexOf(line) === -1) list.push(line);
-    log.log("[muzzle-ov] " + line);
-  }
-
-  function deafenIcon(id) {
-    let a;
-    try { a = assets.getAssetByID(id); } catch (e) { return null; }
-    const n = String((a && a.name) || "").toLowerCase();
-    if (!n || !/deaf|headset/.test(n)) return null;
-    note(n + " #" + id);
-    if (/off|undeafen|open/.test(n)) return ICON.undeafened;
-    return ICON.deafened;
-  }
-
   function labelState(p) {
     const t = String(p.accessibilityLabel || p["aria-label"] || p.label || "").toLowerCase();
-    if (!t || /channel|server|notif|bell|volume|output/.test(t)) return "";
-    if (t.includes("undeafen")) return "deafened";
-    if (t.includes("deafen")) return "undeafened";
+    if (!t || /channel|server|notif|bell|volume|output|deafen/.test(t)) return "";
     if (t.includes("unmute")) return "muted";
     if (t.includes("mute")) return "unmuted";
     return "";
@@ -119,14 +86,12 @@
     const props = args[1];
     if (!type || !props || props.__muzzleOv) return;
 
-    if (type === RN.Image) {
-      const id = sourceId(props.source);
-      if (id === null) return;
-      const icon = IDS[id] || deafenIcon(id);
-      if (!icon) return;
+    const id = sourceId(props.source);
+    if (type === RN.Image && id !== null && IDS[id]) {
       props.__muzzleOv = true;
-      props.source = icon;
+      props.source = IDS[id];
       props.resizeMode = "contain";
+      log.log("[muzzle-ov] asset #" + id);
       return;
     }
 
@@ -134,13 +99,12 @@
     if (!state) return;
     props.__muzzleOv = true;
     props.children = overlayWrap(props.children, props.style, ICON[state]);
+    log.log("[muzzle-ov] button " + state);
   }
 
   try {
     RN.Image.prefetch(ICON.muted.uri);
     RN.Image.prefetch(ICON.unmuted.uri);
-    RN.Image.prefetch(ICON.deafened.uri);
-    RN.Image.prefetch(ICON.undeafened.uri);
   } catch (_) {}
 
   return {
