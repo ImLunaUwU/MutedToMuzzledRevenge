@@ -1,58 +1,46 @@
-import {
-  addAssetOverride,
-  getAssetByName,
-  getAssets,
-  onAssetRegistered,
-} from "@revenge-mod/assets";
+(() => {
+  const {
+    getAssets,
+    getAssetByName,
+    addAssetOverride,
+    removeAssetOverride,
+    onAssetRegistered,
+  } = revenge.assets;
 
-const MUZZLE_URI =
-  "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/dog.png";
-
-const CANDIDATE_NAMES = [
-  "MicOffIcon",
-  "MicOnIcon",
-  "MicIcon",
-  "VoiceCallIcon",
-  "MuteIcon",
-  "DeafenIcon",
-  "UnmuteIcon",
-  "AudioIcon",
-];
-
-function listMicLikeAssets() {
-  return [...getAssets()]
-    .filter((asset) => /mic|mute|voice|audio/i.test(asset.name))
-    .map((asset) => ({ name: asset.name, type: asset.type, id: asset.id }));
-}
-
-function applyOverride(assetName) {
-  const asset = getAssetByName(assetName);
-  if (!asset) return;
-
-  addAssetOverride(asset, {
-    uri: MUZZLE_URI,
+  const MUZZLE = {
+    uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/dog.png",
     width: 24,
     height: 24,
-  });
+  };
 
-  console.log(`[revenge-asset] override applied for ${assetName}`);
-}
+  const NAMES = ["MicrophoneSlashIcon", "ic_mic_muted", "ic_mic_muted_24px"];
+  const applied = [];
 
-export default {
-  start() {
-    console.log("[revenge-asset] matching assets:", listMicLikeAssets());
+  function list() {
+    return [...getAssets()]
+      .filter((a) => /mic|mute|headset|voice/i.test(a.name))
+      .map((a) => a.name + " (" + a.type + ") #" + a.id);
+  }
 
-    for (const name of CANDIDATE_NAMES) {
-      const asset = getAssetByName(name);
-      if (asset) {
-        applyOverride(name);
-      } else {
-        onAssetRegistered(name, () => applyOverride(name));
+  function apply(name) {
+    const asset = getAssetByName(name);
+    if (!asset || applied.indexOf(name) !== -1) return;
+    addAssetOverride(asset, MUZZLE);
+    applied.push(name);
+    console.log("[muzzle] overrode " + name + " #" + asset.id);
+  }
+
+  return {
+    start() {
+      console.log("[muzzle] assets\n" + list().join("\n"));
+      for (const name of NAMES) {
+        if (getAssetByName(name)) apply(name);
+        else onAssetRegistered(name, () => apply(name));
       }
-    }
-  },
-
-  stop() {
-    console.log("[revenge-asset] stopped");
-  },
-};
+    },
+    stop() {
+      for (const name of applied) removeAssetOverride(name);
+      applied.length = 0;
+    },
+  };
+})();
