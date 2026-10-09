@@ -4,6 +4,7 @@
   const { before } = vendetta.patcher;
   const { findByProps } = vendetta.metro;
   const log = vendetta.logger;
+  const assets = vendetta.ui.assets;
 
   const ICON = {
     muted: {
@@ -50,6 +51,22 @@
     if (typeof src === "number") return src;
     if (src && typeof src.__packager_asset === "number") return src.__packager_asset;
     return null;
+  }
+
+  function note(line) {
+    const list = globalThis.__muzzle || (globalThis.__muzzle = []);
+    if (list.indexOf(line) === -1) list.push(line);
+    log.log("[muzzle-ov] " + line);
+  }
+
+  function deafenIcon(id) {
+    let a;
+    try { a = assets.getAssetByID(id); } catch (e) { return null; }
+    const n = String((a && a.name) || "").toLowerCase();
+    if (!n || !/deaf|headset/.test(n)) return null;
+    note(n + " #" + id);
+    if (/off|undeafen|open/.test(n)) return ICON.undeafened;
+    return ICON.deafened;
   }
 
   function labelState(p) {
@@ -102,12 +119,14 @@
     const props = args[1];
     if (!type || !props || props.__muzzleOv) return;
 
-    const id = sourceId(props.source);
-    if (type === RN.Image && id !== null && IDS[id]) {
+    if (type === RN.Image) {
+      const id = sourceId(props.source);
+      if (id === null) return;
+      const icon = IDS[id] || deafenIcon(id);
+      if (!icon) return;
       props.__muzzleOv = true;
-      props.source = IDS[id];
+      props.source = icon;
       props.resizeMode = "contain";
-      log.log("[muzzle-ov] asset #" + id);
       return;
     }
 
@@ -115,7 +134,6 @@
     if (!state) return;
     props.__muzzleOv = true;
     props.children = overlayWrap(props.children, props.style, ICON[state]);
-    log.log("[muzzle-ov] button " + state);
   }
 
   try {
