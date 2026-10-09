@@ -1,6 +1,6 @@
 {
-  "name": "MutedToMuzzled",
-  "description": "Replaces the muted microphone icon with a dog muzzle. Port of the Vencord/BetterDiscord snippet.",
+  "name": "MutedToMuzzled Test",
+  "description": "Debug plugin for the Discord Android mic/mute/deafen asset and component data collection.",
   "authors": [
     {
       "name": "Luna",
@@ -8,7 +8,7 @@
     }
   ],
   "main": "index.js",
-  "hash": "muzzled-overlay-1",
+  "hash": "muted-to-muzzled-testing",
   "vendetta": {
     "icon": "MicOffIcon"
   }
