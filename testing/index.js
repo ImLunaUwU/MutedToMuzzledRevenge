@@ -5,34 +5,61 @@
   const { findByProps } = vendetta.metro;
   const log = vendetta.logger;
 
-  const MUZZLE = {
-    uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/dog.png",
-    width: 24,
-    height: 24,
+  const ICON = {
+    muted: {
+      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/nobark.png",
+      width: 24,
+      height: 24,
+    },
+    unmuted: {
+      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/barkbark.png",
+      width: 24,
+      height: 24,
+    },
+    deafened: {
+      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/caged.png",
+      width: 24,
+      height: 24,
+    },
+    undeafened: {
+      uri: "https://raw.githubusercontent.com/zoez22/muzzlemute/refs/heads/main/open_cage.png",
+      width: 24,
+      height: 24,
+    },
   };
 
-  // voice_bar_mute_on, MicrophoneSlashIcon, ic_mic_muted_*
-  const IDS = [2101, 2288, 2222, 2198, 2812, 2813];
+  const IDS = {
+    2101: ICON.muted,       // voice_bar_mute_on
+    2288: ICON.muted,       // voice_bar_mute_on
+    2222: ICON.muted,       // MicrophoneSlashIcon
+    2198: ICON.muted,       // ic_mic_muted_24px
+    2812: ICON.muted,       // ic_mic_muted_dark_24px
+    2813: ICON.muted,       // ic_mic_muted_light_24px
+    2221: ICON.muted,       // MicrophoneDenyIcon
+    2289: ICON.unmuted,     // voice_bar_mute_off
+    2287: ICON.unmuted,     // MicrophoneIcon
+    2105: ICON.unmuted,     // ic_mic_24px
+    2863: ICON.unmuted,     // mic
+    2293: ICON.deafened,    // voice_bar_deafen_on
+    2197: ICON.deafened,    // ic_headset_deafened_24px
+    2814: ICON.deafened,    // ic_headset_deafened_dark_24px
+    2294: ICON.undeafened,  // voice_bar_deafen_off
+  };
 
   function labelOf(p) {
     if (!p) return "";
-    return String(
-      p.accessibilityLabel || p["aria-label"] || p.label || p.text || ""
-    ).toLowerCase();
+    return String(p.accessibilityLabel || p["aria-label"] || p.label || p.text || "").toLowerCase();
   }
 
-  function isMutedMicButton(p) {
+  function stateOf(p) {
     const t = labelOf(p);
-    if (!t) return false;
-    if (/channel|server|notif|bell|volume|højttaler|deaf/.test(t)) return false;
-    if (t.includes("unmute")) return true;
-    if (t.includes("afmute")) return true;
-    if (t.includes("slå mikrofon til")) return true;
-    if (t.includes("slå lyden til") && t.includes("mikrofon")) return true;
-    const st = p.accessibilityState || {};
-    if ((t.includes("mute") || t.includes("mikrofon") || t.includes("mic")) && st.checked === true)
-      return true;
-    return false;
+    if (!t) return "";
+    if (/channel|server|notif|bell|volume/.test(t)) return "";
+    if (t.includes("undeafen")) return "undeafened";
+    if (t.includes("deafen")) return "deafened";
+    if (t.includes("unmute")) return "unmuted";
+    if (t.includes("mute")) return "muted";
+    return "";
   }
 
   function sourceId(src) {
@@ -41,7 +68,7 @@
     return null;
   }
 
-  function overlayWrap(inner, style) {
+  function overlayWrap(inner, style, icon) {
     return React.createElement(
       RN.View,
       {
@@ -50,7 +77,7 @@
       },
       React.createElement(RN.View, { style: { opacity: 0 } }, inner),
       React.createElement(RN.Image, {
-        source: MUZZLE,
+        source: icon,
         resizeMode: "contain",
         pointerEvents: "none",
         style: { position: "absolute", width: 22, height: 22 },
@@ -74,21 +101,25 @@
     if (!type || !props || props.__muzzleOv) return;
 
     const id = sourceId(props.source);
-    if (type === RN.Image && id !== null && IDS.indexOf(id) !== -1) {
+    if (type === RN.Image && id !== null && IDS[id]) {
       props.__muzzleOv = true;
-      props.source = MUZZLE;
+      props.source = IDS[id];
       log.log("[muzzle-ov] asset " + id);
       return;
     }
 
-    if (!isMutedMicButton(props)) return;
+    const state = stateOf(props);
+    if (!state) return;
     props.__muzzleOv = true;
-    props.children = overlayWrap(props.children, props.style);
-    log.log("[muzzle-ov] wrapped " + labelOf(props));
+    props.children = overlayWrap(props.children, props.style, ICON[state]);
+    log.log("[muzzle-ov] wrapped " + state);
   }
 
   try {
-    RN.Image.prefetch(MUZZLE.uri);
+    RN.Image.prefetch(ICON.muted.uri);
+    RN.Image.prefetch(ICON.unmuted.uri);
+    RN.Image.prefetch(ICON.deafened.uri);
+    RN.Image.prefetch(ICON.undeafened.uri);
   } catch (_) {}
 
   return {
