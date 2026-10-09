@@ -1,9 +1,9 @@
-import {
+const {
   addAssetOverride,
   getAssetByName,
   getAssets,
   removeAssetOverride,
-} from "@revenge-mod/assets";
+} = require("@revenge-mod/assets");
 
 (() => {
   const React = vendetta.metro.common.React;
